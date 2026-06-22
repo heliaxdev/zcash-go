@@ -1,6 +1,9 @@
 package zcash
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 // OutPoint points to a previous transaction output.
 type OutPoint struct {
@@ -41,11 +44,11 @@ type TransparentBundle struct {
 func readOutPoint(r io.Reader) (OutPoint, error) {
 	hash, err := readFixed32(r)
 	if err != nil {
-		return OutPoint{}, err
+		return OutPoint{}, fmt.Errorf("failed to read outpoint hash: %w", err)
 	}
 	n, err := readU32LE(r)
 	if err != nil {
-		return OutPoint{}, err
+		return OutPoint{}, fmt.Errorf("failed to read outpoint index: %w", err)
 	}
 	return OutPoint{Hash: hash, N: n}, nil
 }
@@ -53,15 +56,15 @@ func readOutPoint(r io.Reader) (OutPoint, error) {
 func readTxIn(r io.Reader) (TxIn, error) {
 	prevout, err := readOutPoint(r)
 	if err != nil {
-		return TxIn{}, err
+		return TxIn{}, fmt.Errorf("failed to read txin prevout: %w", err)
 	}
 	script, err := readScript(r)
 	if err != nil {
-		return TxIn{}, err
+		return TxIn{}, fmt.Errorf("failed to read txin script_sig: %w", err)
 	}
 	seq, err := readU32LE(r)
 	if err != nil {
-		return TxIn{}, err
+		return TxIn{}, fmt.Errorf("failed to read txin sequence: %w", err)
 	}
 	return TxIn{Prevout: prevout, ScriptSig: script, Sequence: seq}, nil
 }
@@ -69,11 +72,11 @@ func readTxIn(r io.Reader) (TxIn, error) {
 func readTxOut(r io.Reader) (TxOut, error) {
 	value, err := readI64LE(r)
 	if err != nil {
-		return TxOut{}, err
+		return TxOut{}, fmt.Errorf("failed to read txout value: %w", err)
 	}
 	script, err := readScript(r)
 	if err != nil {
-		return TxOut{}, err
+		return TxOut{}, fmt.Errorf("failed to read txout script_pubkey: %w", err)
 	}
 	return TxOut{Value: value, ScriptPubKey: script}, nil
 }
@@ -83,7 +86,7 @@ func readTxOut(r io.Reader) (TxOut, error) {
 func readTransparent(r io.Reader) (*TransparentBundle, error) {
 	vinCount, err := readCompactSize(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read vin count: %w", err)
 	}
 	if vinCount > MaxCompactSize {
 		return nil, errCompactTooLarge
@@ -92,19 +95,19 @@ func readTransparent(r io.Reader) (*TransparentBundle, error) {
 	for i := range vin {
 		vin[i], err = readTxIn(r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read vin[%d]: %w", i, err)
 		}
 	}
 
 	voutCount, err := readCompactSize(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read vout count: %w", err)
 	}
 	vout := make([]TxOut, voutCount)
 	for i := range vout {
 		vout[i], err = readTxOut(r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read vout[%d]: %w", i, err)
 		}
 	}
 

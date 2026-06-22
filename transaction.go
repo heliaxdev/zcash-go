@@ -23,7 +23,7 @@ type Transaction struct {
 func Parse(r io.Reader) (*Transaction, error) {
 	header, err := readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read tx header: %w", err)
 	}
 	overwintered := (header & overwinteredBit) != 0
 	version := header & versionMask
@@ -35,7 +35,7 @@ func Parse(r io.Reader) (*Transaction, error) {
 
 	vgid, err := readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read tx version_group_id: %w", err)
 	}
 
 	switch {
@@ -56,17 +56,17 @@ func parseV4(r io.Reader) (*Transaction, error) {
 
 	transparent, err := readTransparent(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v4 transparent bundle: %w", err)
 	}
 	tx.Transparent = transparent
 
 	tx.LockTime, err = readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v4 lock_time: %w", err)
 	}
 	tx.ExpiryHeight, err = readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v4 expiry_height: %w", err)
 	}
 
 	// consensus_branch_id is not encoded in the v4 body; it is supplied by the
@@ -77,14 +77,14 @@ func parseV4(r io.Reader) (*Transaction, error) {
 	// Sapling v4 components.
 	sapling, err := readSaplingV4Components(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v4 sapling bundle: %w", err)
 	}
 	tx.Sapling = sapling
 
 	// Sprout joinsplits (v4 has_sprout == true).
 	sprout, err := readSproutBundle(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v4 sprout bundle: %w", err)
 	}
 	tx.Sprout = sprout
 
@@ -96,7 +96,7 @@ func parseV5(r io.Reader) (*Transaction, error) {
 
 	branchRaw, err := readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 consensus_branch_id: %w", err)
 	}
 	bid, ok := branchIdFromU32(branchRaw)
 	if !ok {
@@ -106,28 +106,28 @@ func parseV5(r io.Reader) (*Transaction, error) {
 
 	tx.LockTime, err = readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 lock_time: %w", err)
 	}
 	tx.ExpiryHeight, err = readU32LE(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 expiry_height: %w", err)
 	}
 
 	transparent, err := readTransparent(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 transparent bundle: %w", err)
 	}
 	tx.Transparent = transparent
 
 	sapling, err := readSaplingV5Bundle(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 sapling bundle: %w", err)
 	}
 	tx.Sapling = sapling
 
 	orchard, err := readOrchardV5Bundle(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read v5 orchard bundle: %w", err)
 	}
 	tx.Orchard = orchard
 
