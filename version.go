@@ -16,21 +16,21 @@ type TxVersion int
 const (
 	// TxVersionSprout covers pre-Overwinter versions 1 and 2. Not supported.
 	TxVersionSprout TxVersion = iota
-	TxVersionV3 // Overwinter. Not supported.
-	TxVersionV4 // Sapling .. Nu6.2
-	TxVersionV5 // NU5 .. Nu6.2 (and beyond)
+	TxVersionV3               // Overwinter. Not supported.
+	TxVersionV4               // Sapling .. Nu6.2
+	TxVersionV5               // NU5 .. Nu6.2 (and beyond)
 )
 
 // Header / version_group_id constants (see zcash_protocol constants.rs).
 const (
-	v3TxVersion        uint32 = 3
-	v3VersionGroupID   uint32 = 0x03C48270
-	v4TxVersion        uint32 = 4
-	v4VersionGroupID   uint32 = 0x892F2085
-	v5TxVersion        uint32 = 5
-	v5VersionGroupID   uint32 = 0x26A7270A
-	overwinteredBit    uint32 = 1 << 31
-	versionMask        uint32 = 0x7FFFFFFF
+	v3TxVersion      uint32 = 3
+	v3VersionGroupID uint32 = 0x03C48270
+	v4TxVersion      uint32 = 4
+	v4VersionGroupID uint32 = 0x892F2085
+	v5TxVersion      uint32 = 5
+	v5VersionGroupID uint32 = 0x26A7270A
+	overwinteredBit  uint32 = 1 << 31
+	versionMask      uint32 = 0x7FFFFFFF
 )
 
 // BranchId is the Zcash consensus branch id.

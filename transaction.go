@@ -13,9 +13,9 @@ type Transaction struct {
 	ExpiryHeight      uint32
 
 	Transparent *TransparentBundle
-	Sprout      *SproutBundle      // only present in v4
+	Sprout      *SproutBundle // only present in v4
 	Sapling     *SaplingBundle
-	Orchard     *OrchardBundle     // only present in v5
+	Orchard     *OrchardBundle // only present in v5
 }
 
 // Parse reads a Zcash transaction from r. It returns [ErrSkipped] for

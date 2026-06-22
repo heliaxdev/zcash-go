@@ -204,10 +204,18 @@ func readSaplingV5Bundle(r io.Reader) (*SaplingBundle, error) {
 			return nil, fmt.Errorf("failed to read sapling v5 output[%d] ephemeral key: %w", i, err)
 		}
 		if _, err = io.ReadFull(r, od5[i].EncCiphertext[:]); err != nil {
-			return nil, fmt.Errorf("failed to read sapling v5 output[%d] enc_ciphertext: %w", i, err)
+			return nil, fmt.Errorf(
+				"failed to read sapling v5 output[%d] enc_ciphertext: %w",
+				i,
+				err,
+			)
 		}
 		if _, err = io.ReadFull(r, od5[i].OutCiphertext[:]); err != nil {
-			return nil, fmt.Errorf("failed to read sapling v5 output[%d] out_ciphertext: %w", i, err)
+			return nil, fmt.Errorf(
+				"failed to read sapling v5 output[%d] out_ciphertext: %w",
+				i,
+				err,
+			)
 		}
 	}
 

@@ -19,12 +19,12 @@ type OrchardAction struct {
 
 // OrchardBundle is the Orchard shielded bundle.
 type OrchardBundle struct {
-	Actions       []OrchardAction
-	Flags         byte
-	ValueBalance  int64
-	Anchor        [32]byte
-	Proof         []byte
-	BindingSig    [64]byte
+	Actions      []OrchardAction
+	Flags        byte
+	ValueBalance int64
+	Anchor       [32]byte
+	Proof        []byte
+	BindingSig   [64]byte
 }
 
 // readOrchardV5Bundle reads an Orchard bundle in the v5 transaction format.
@@ -62,10 +62,18 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 			return nil, fmt.Errorf("failed to read orchard v5 action[%d] ephemeral key: %w", i, err)
 		}
 		if _, err = io.ReadFull(r, a.EncCiphertext[:]); err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] enc_ciphertext: %w", i, err)
+			return nil, fmt.Errorf(
+				"failed to read orchard v5 action[%d] enc_ciphertext: %w",
+				i,
+				err,
+			)
 		}
 		if _, err = io.ReadFull(r, a.OutCiphertext[:]); err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] out_ciphertext: %w", i, err)
+			return nil, fmt.Errorf(
+				"failed to read orchard v5 action[%d] out_ciphertext: %w",
+				i,
+				err,
+			)
 		}
 	}
 
@@ -89,13 +97,21 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 	}
 	bundle.Proof = make([]byte, proofCount)
 	if _, err = io.ReadFull(r, bundle.Proof); err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 proof body (%d bytes): %w", proofCount, err)
+		return nil, fmt.Errorf(
+			"failed to read orchard v5 proof body (%d bytes): %w",
+			proofCount,
+			err,
+		)
 	}
 
 	for i := range actions {
 		actions[i].SpendAuthSig, err = readFixed64(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] spend auth sig: %w", i, err)
+			return nil, fmt.Errorf(
+				"failed to read orchard v5 action[%d] spend auth sig: %w",
+				i,
+				err,
+			)
 		}
 	}
 	bundle.Actions = actions
