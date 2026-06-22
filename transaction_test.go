@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const txVectorPath = "/tmp/zcash_tx.bin"
+const txVectorPath = "assets/zcash_tx.bin"
 
 func TestParseVector(t *testing.T) {
 	raw, err := os.ReadFile(txVectorPath)
