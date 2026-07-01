@@ -88,6 +88,15 @@ func parseV4(r io.Reader) (*Transaction, error) {
 	}
 	tx.Sprout = sprout
 
+	// binding_sig follows the sprout section and is present iff the sapling
+	// bundle has any spends or outputs (mod.rs:873-881).
+	if tx.Sapling != nil && (len(tx.Sapling.Spends) > 0 || len(tx.Sapling.Outputs) > 0) {
+		tx.Sapling.BindingSig, err = readFixed64(r)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read v4 sapling binding sig: %w", err)
+		}
+	}
+
 	return tx, nil
 }
 

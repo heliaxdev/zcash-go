@@ -133,21 +133,16 @@ func readSaplingV4Components(r io.Reader) (*SaplingBundle, error) {
 		}
 	}
 
-	if len(spends) == 0 && len(outputs) == 0 {
-		// binding_sig is absent in this case; bundle is effectively empty.
-		return &SaplingBundle{ValueBalance: 0}, nil
-	}
-
-	bundle := &SaplingBundle{
+	// In the v4 wire format the binding_sig is NOT part of the sapling
+	// components block; it is emitted after the sprout joinsplits section.
+	// See transaction/mod.rs:read_v4. We return the bundle without it; the
+	// caller (parseV4) is responsible for reading binding_sig at the right
+	// point in the stream.
+	return &SaplingBundle{
 		Spends:       spends,
 		Outputs:      outputs,
 		ValueBalance: valueBalance,
-	}
-	bundle.BindingSig, err = readFixed64(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read sapling v4 binding sig: %w", err)
-	}
-	return bundle, nil
+	}, nil
 }
 
 // readSaplingV5Bundle reads a Sapling bundle in the v5 transaction format.

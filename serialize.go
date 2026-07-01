@@ -86,6 +86,13 @@ func (tx *Transaction) serializeV4(w io.Writer) error {
 	if err := writeSproutBundle(w, tx.Sprout); err != nil {
 		return err
 	}
+	// binding_sig follows the sprout section and is present iff the sapling
+	// bundle has any spends or outputs (mod.rs:873-881).
+	if tx.Sapling != nil && (len(tx.Sapling.Spends) > 0 || len(tx.Sapling.Outputs) > 0) {
+		if err := writeFixed(w, tx.Sapling.BindingSig[:]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -228,11 +235,8 @@ func writeSaplingV4Components(w io.Writer, b *SaplingBundle) error {
 			return err
 		}
 	}
-	if len(b.Spends) > 0 || len(b.Outputs) > 0 {
-		if err := writeFixed(w, b.BindingSig[:]); err != nil {
-			return err
-		}
-	}
+	// binding_sig is NOT written here in the v4 format; it is emitted after
+	// the sprout section by serializeV4.
 	return nil
 }
 
