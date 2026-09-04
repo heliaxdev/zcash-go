@@ -8,6 +8,7 @@ import (
 
 const txVectorPath = "assets/zcash_tx.bin"
 const txFailVectorPath = "assets/zcash_tx_fail.bin"
+const txV6VectorPath = "assets/zcash_tx_v6.bin"
 
 func TestParseVector(t *testing.T) {
 	raw, err := os.ReadFile(txVectorPath)
@@ -118,6 +119,86 @@ func TestParseV4FailVector(t *testing.T) {
 	}
 }
 
+func TestParseV6Vector(t *testing.T) {
+	raw, err := os.ReadFile(txV6VectorPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", txV6VectorPath, err)
+	}
+
+	tx, err := Parse(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if tx.Version != TxVersionV6 {
+		t.Fatalf("version = %v, want V6", tx.Version)
+	}
+	if tx.ConsensusBranchID != BranchIdNu63 {
+		t.Fatalf("branch id = 0x%08x, want Nu6.3 (0x%08x)", tx.ConsensusBranchID, BranchIdNu63)
+	}
+	if tx.LockTime != 0 {
+		t.Errorf("lock_time = %d, want 0", tx.LockTime)
+	}
+	if tx.ExpiryHeight != 1 {
+		t.Errorf("expiry_height = %d, want 1", tx.ExpiryHeight)
+	}
+	if tx.Transparent != nil {
+		t.Errorf("transparent bundle = %v, want nil", tx.Transparent)
+	}
+	if tx.Sprout != nil {
+		t.Errorf("sprout bundle = %v, want nil (v6 has no sprout)", tx.Sprout)
+	}
+	if tx.Sapling == nil {
+		t.Fatal("sapling bundle = nil, want non-nil")
+	}
+	if got := len(tx.Sapling.Spends); got != 0 {
+		t.Errorf("sapling spends = %d, want 0", got)
+	}
+	if got := len(tx.Sapling.Outputs); got != 0 {
+		t.Errorf("sapling outputs = %d, want 0", got)
+	}
+
+	if tx.Orchard == nil {
+		t.Fatal("orchard bundle = nil, want non-nil")
+	}
+	if got, want := len(tx.Orchard.Actions), 1; got != want {
+		t.Errorf("orchard actions = %d, want %d", got, want)
+	}
+	// The v6 Orchard slot forbids the cross-address bit (bit 2).
+	if got := tx.Orchard.Flags & 0b100; got != 0 {
+		t.Errorf("orchard flags = 0b%05b, want bit 2 clear", tx.Orchard.Flags)
+	}
+	if tx.Orchard.ValueBalance != 162464361004284 {
+		t.Errorf("orchard value_balance = %d, want 162464361004284", tx.Orchard.ValueBalance)
+	}
+	if tx.Orchard.BindingSig == ([64]byte{}) {
+		t.Error("orchard binding sig = zero, want non-zero")
+	}
+	if got, want := len(tx.Orchard.Proof), 4992; got != want {
+		t.Errorf("orchard proof len = %d, want %d", got, want)
+	}
+
+	if tx.Ironwood == nil {
+		t.Fatal("ironwood bundle = nil, want non-nil")
+	}
+	if got, want := len(tx.Ironwood.Actions), 1; got != want {
+		t.Errorf("ironwood actions = %d, want %d", got, want)
+	}
+	// The v6 Ironwood slot encodes enableCrossAddress in bit 2.
+	if got := tx.Ironwood.Flags & 0b100; got == 0 {
+		t.Errorf("ironwood flags = 0b%05b, want bit 2 set", tx.Ironwood.Flags)
+	}
+	if tx.Ironwood.ValueBalance != -544781819241992 {
+		t.Errorf("ironwood value_balance = %d, want -544781819241992", tx.Ironwood.ValueBalance)
+	}
+	if tx.Ironwood.BindingSig == ([64]byte{}) {
+		t.Error("ironwood binding sig = zero, want non-zero")
+	}
+	if got, want := len(tx.Ironwood.Proof), 4992; got != want {
+		t.Errorf("ironwood proof len = %d, want %d", got, want)
+	}
+}
+
 func TestRoundTripSerialize(t *testing.T) {
 	vectors := []struct {
 		name string
@@ -125,6 +206,7 @@ func TestRoundTripSerialize(t *testing.T) {
 	}{
 		{"v5", txVectorPath},
 		{"v4_fail", txFailVectorPath},
+		{"v6", txV6VectorPath},
 	}
 	for _, v := range vectors {
 		t.Run(v.name, func(t *testing.T) {

@@ -15,6 +15,8 @@ Supported transaction versions:
   Sprout joinsplits.
 - **V5** (NU5 .. Nu6.2) — transparent bundle, Sapling shielded bundle, Orchard
   shielded bundle.
+- **V6** (NU6.3, ZIP 229) — transparent bundle, Sapling shielded bundle,
+  Orchard shielded bundle, Ironwood shielded bundle.
 
 Pre-Sapling transactions (Sprout v1/v2 and Overwinter V3) are not supported and
 return `ErrSkipped`.
@@ -66,6 +68,9 @@ func main() {
 	if tx.Orchard != nil {
 		fmt.Printf("orchard actions:    %d\n", len(tx.Orchard.Actions))
 	}
+	if tx.Ironwood != nil {
+		fmt.Printf("ironwood actions:   %d\n", len(tx.Ironwood.Actions))
+	}
 }
 ```
 
@@ -80,12 +85,14 @@ used as the primary correctness oracle in the test suite.
 - [Zcash Protocol Specification][protocol] — §7.1 Transaction Encoding and
   Consensus, §4.4 Spend Descriptions, §4.5 Output Descriptions.
 - [ZIP 225][zip-225] — Version 5 Transaction Format.
+- [ZIP 229][zip-229] — Version 6 Transaction Format (Ironwood pool).
 - [librustzcash][librustzcash] — the canonical Rust implementation this parser
   follows.
 
 [librustzcash]: https://github.com/zcash/librustzcash
 [protocol]: https://zips.z.cash/protocol/protocol.pdf
 [zip-225]: https://zips.z.cash/zip-0225
+[zip-229]: https://zips.z.cash/zip-0229
 
 ## License
 

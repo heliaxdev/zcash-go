@@ -27,12 +27,22 @@ type OrchardBundle struct {
 	BindingSig   [64]byte
 }
 
-// readOrchardV5Bundle reads an Orchard bundle in the v5 transaction format.
+// IronwoodAction is an Ironwood action description. The Ironwood pool (ZIP 229)
+// reuses the Orchard action encoding unchanged.
+type IronwoodAction = OrchardAction
+
+// IronwoodBundle is the Ironwood shielded bundle. The Ironwood pool (ZIP 229)
+// reuses the Orchard bundle encoding unchanged.
+type IronwoodBundle = OrchardBundle
+
+// readOrchardBundle reads an Orchard-protocol bundle (Orchard or Ironwood pool,
+// whose wire encodings are identical). label identifies the pool and transaction
+// version (e.g. "orchard v5", "ironwood v6") and is used in error messages.
 // Returns nil when no actions are present.
-func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
+func readOrchardBundle(r io.Reader, label string) (*OrchardBundle, error) {
 	nActions, err := readCompactSize(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 actions count: %w", err)
+		return nil, fmt.Errorf("failed to read %s actions count: %w", label, err)
 	}
 	if nActions == 0 {
 		return nil, nil
@@ -43,34 +53,36 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 		a := &actions[i]
 		a.CvNet, err = readFixed32(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] cv_net: %w", i, err)
+			return nil, fmt.Errorf("failed to read %s action[%d] cv_net: %w", label, i, err)
 		}
 		a.Nullifier, err = readFixed32(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] nullifier: %w", i, err)
+			return nil, fmt.Errorf("failed to read %s action[%d] nullifier: %w", label, i, err)
 		}
 		a.Rk, err = readFixed32(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] rk: %w", i, err)
+			return nil, fmt.Errorf("failed to read %s action[%d] rk: %w", label, i, err)
 		}
 		a.Cmx, err = readFixed32(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] cmx: %w", i, err)
+			return nil, fmt.Errorf("failed to read %s action[%d] cmx: %w", label, i, err)
 		}
 		a.EphemeralKey, err = readFixed32(r)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read orchard v5 action[%d] ephemeral key: %w", i, err)
+			return nil, fmt.Errorf("failed to read %s action[%d] ephemeral key: %w", label, i, err)
 		}
 		if _, err = io.ReadFull(r, a.EncCiphertext[:]); err != nil {
 			return nil, fmt.Errorf(
-				"failed to read orchard v5 action[%d] enc_ciphertext: %w",
+				"failed to read %s action[%d] enc_ciphertext: %w",
+				label,
 				i,
 				err,
 			)
 		}
 		if _, err = io.ReadFull(r, a.OutCiphertext[:]); err != nil {
 			return nil, fmt.Errorf(
-				"failed to read orchard v5 action[%d] out_ciphertext: %w",
+				"failed to read %s action[%d] out_ciphertext: %w",
+				label,
 				i,
 				err,
 			)
@@ -80,25 +92,26 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 	var bundle OrchardBundle
 	bundle.Flags, err = readByte(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 flags: %w", err)
+		return nil, fmt.Errorf("failed to read %s flags: %w", label, err)
 	}
 	bundle.ValueBalance, err = readI64LE(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 value_balance: %w", err)
+		return nil, fmt.Errorf("failed to read %s value_balance: %w", label, err)
 	}
 	bundle.Anchor, err = readFixed32(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 anchor: %w", err)
+		return nil, fmt.Errorf("failed to read %s anchor: %w", label, err)
 	}
 
 	proofCount, err := readCompactSize(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 proof length: %w", err)
+		return nil, fmt.Errorf("failed to read %s proof length: %w", label, err)
 	}
 	bundle.Proof = make([]byte, proofCount)
 	if _, err = io.ReadFull(r, bundle.Proof); err != nil {
 		return nil, fmt.Errorf(
-			"failed to read orchard v5 proof body (%d bytes): %w",
+			"failed to read %s proof body (%d bytes): %w",
+			label,
 			proofCount,
 			err,
 		)
@@ -108,7 +121,8 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 		actions[i].SpendAuthSig, err = readFixed64(r)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"failed to read orchard v5 action[%d] spend auth sig: %w",
+				"failed to read %s action[%d] spend auth sig: %w",
+				label,
 				i,
 				err,
 			)
@@ -118,7 +132,7 @@ func readOrchardV5Bundle(r io.Reader) (*OrchardBundle, error) {
 
 	bundle.BindingSig, err = readFixed64(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read orchard v5 binding sig: %w", err)
+		return nil, fmt.Errorf("failed to read %s binding sig: %w", label, err)
 	}
 	return &bundle, nil
 }

@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// Transaction is a parsed Zcash transaction (Sapling+: V4 or V5).
+// Transaction is a parsed Zcash transaction (Sapling+: V4, V5 or V6).
 type Transaction struct {
 	Version           TxVersion
 	ConsensusBranchID BranchId
@@ -15,7 +15,8 @@ type Transaction struct {
 	Transparent *TransparentBundle
 	Sprout      *SproutBundle // only present in v4
 	Sapling     *SaplingBundle
-	Orchard     *OrchardBundle // only present in v5
+	Orchard     *OrchardBundle  // only present in v5/v6
+	Ironwood    *IronwoodBundle // only present in v6
 }
 
 // Parse reads a Zcash transaction from r. It returns [ErrSkipped] for
@@ -46,6 +47,8 @@ func Parse(r io.Reader) (*Transaction, error) {
 		return parseV4(r)
 	case version == v5TxVersion && vgid == v5VersionGroupID:
 		return parseV5(r)
+	case version == v6TxVersion && vgid == v6VersionGroupID:
+		return parseV6(r)
 	default:
 		return nil, fmt.Errorf("%w: unknown version %d group_id 0x%08x", ErrSkipped, version, vgid)
 	}
@@ -134,11 +137,60 @@ func parseV5(r io.Reader) (*Transaction, error) {
 	}
 	tx.Sapling = sapling
 
-	orchard, err := readOrchardV5Bundle(r)
+	orchard, err := readOrchardBundle(r, "orchard v5")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read v5 orchard bundle: %w", err)
 	}
 	tx.Orchard = orchard
+
+	return tx, nil
+}
+
+func parseV6(r io.Reader) (*Transaction, error) {
+	tx := &Transaction{Version: TxVersionV6}
+
+	branchRaw, err := readU32LE(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 consensus_branch_id: %w", err)
+	}
+	bid, ok := branchIdFromU32(branchRaw)
+	if !ok {
+		return nil, fmt.Errorf("zcash: invalid consensus branch id 0x%08x", branchRaw)
+	}
+	tx.ConsensusBranchID = bid
+
+	tx.LockTime, err = readU32LE(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 lock_time: %w", err)
+	}
+	tx.ExpiryHeight, err = readU32LE(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 expiry_height: %w", err)
+	}
+
+	transparent, err := readTransparent(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 transparent bundle: %w", err)
+	}
+	tx.Transparent = transparent
+
+	sapling, err := readSaplingV5Bundle(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 sapling bundle: %w", err)
+	}
+	tx.Sapling = sapling
+
+	orchard, err := readOrchardBundle(r, "orchard v6")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 orchard bundle: %w", err)
+	}
+	tx.Orchard = orchard
+
+	ironwood, err := readOrchardBundle(r, "ironwood v6")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read v6 ironwood bundle: %w", err)
+	}
+	tx.Ironwood = ironwood
 
 	return tx, nil
 }

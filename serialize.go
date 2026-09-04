@@ -2,6 +2,7 @@ package zcash
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -12,6 +13,8 @@ func (tx *Transaction) Serialize(w io.Writer) error {
 		return tx.serializeV4(w)
 	case TxVersionV5:
 		return tx.serializeV5(w)
+	case TxVersionV6:
+		return tx.serializeV6(w)
 	default:
 		return errUnsupportedVersion
 	}
@@ -55,6 +58,8 @@ func (tx *Transaction) headerAndGroupID() (uint32, uint32, error) {
 		return overwinteredBit | v4TxVersion, v4VersionGroupID, nil
 	case TxVersionV5:
 		return overwinteredBit | v5TxVersion, v5VersionGroupID, nil
+	case TxVersionV6:
+		return overwinteredBit | v6TxVersion, v6VersionGroupID, nil
 	default:
 		return 0, 0, errUnsupportedVersion
 	}
@@ -96,7 +101,19 @@ func (tx *Transaction) serializeV4(w io.Writer) error {
 	return nil
 }
 
+func serializeIronwoodGuard(tx *Transaction) error {
+	if tx.Ironwood != nil {
+		return errors.New(
+			"zcash: ironwood components cannot be present when serializing to a pre-V6 transaction format",
+		)
+	}
+	return nil
+}
+
 func (tx *Transaction) serializeV5(w io.Writer) error {
+	if err := serializeIronwoodGuard(tx); err != nil {
+		return err
+	}
 	header, vgid, err := tx.headerAndGroupID()
 	if err != nil {
 		return err
@@ -122,10 +139,42 @@ func (tx *Transaction) serializeV5(w io.Writer) error {
 	if err := writeSaplingV5Bundle(w, tx.Sapling); err != nil {
 		return err
 	}
-	if err := writeOrchardV5Bundle(w, tx.Orchard); err != nil {
+	if err := writeOrchardBundle(w, tx.Orchard); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (tx *Transaction) serializeV6(w io.Writer) error {
+	header, vgid, err := tx.headerAndGroupID()
+	if err != nil {
+		return err
+	}
+	if err := writeU32LE(w, header); err != nil {
+		return err
+	}
+	if err := writeU32LE(w, vgid); err != nil {
+		return err
+	}
+	if err := writeU32LE(w, uint32(tx.ConsensusBranchID)); err != nil {
+		return err
+	}
+	if err := writeU32LE(w, tx.LockTime); err != nil {
+		return err
+	}
+	if err := writeU32LE(w, tx.ExpiryHeight); err != nil {
+		return err
+	}
+	if err := writeTransparent(w, tx.Transparent); err != nil {
+		return err
+	}
+	if err := writeSaplingV5Bundle(w, tx.Sapling); err != nil {
+		return err
+	}
+	if err := writeOrchardBundle(w, tx.Orchard); err != nil {
+		return err
+	}
+	return writeOrchardBundle(w, tx.Ironwood)
 }
 
 func writeTransparent(w io.Writer, b *TransparentBundle) error {
@@ -316,7 +365,9 @@ func writeSaplingV5Bundle(w io.Writer, b *SaplingBundle) error {
 	return nil
 }
 
-func writeOrchardV5Bundle(w io.Writer, b *OrchardBundle) error {
+// writeOrchardBundle writes an Orchard-protocol bundle (Orchard or Ironwood
+// pool; the wire encodings are identical).
+func writeOrchardBundle(w io.Writer, b *OrchardBundle) error {
 	if b == nil {
 		return writeCompactSize(w, 0)
 	}

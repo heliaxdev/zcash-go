@@ -1,4 +1,4 @@
-// Package zcash parses Zcash transactions (Sapling+ versions: V4 and V5).
+// Package zcash parses Zcash transactions (Sapling+ versions: V4, V5 and V6).
 //
 // Pre-Sapling transaction versions (Sprout v1/v2 and Overwinter V3) are not
 // supported and return ErrSkipped.
@@ -19,6 +19,7 @@ const (
 	TxVersionV3               // Overwinter. Not supported.
 	TxVersionV4               // Sapling .. Nu6.2
 	TxVersionV5               // NU5 .. Nu6.2 (and beyond)
+	TxVersionV6               // NU6.3 (ZIP 229): Ironwood pool
 )
 
 // Header / version_group_id constants (see zcash_protocol constants.rs).
@@ -29,6 +30,8 @@ const (
 	v4VersionGroupID uint32 = 0x892F2085
 	v5TxVersion      uint32 = 5
 	v5VersionGroupID uint32 = 0x26A7270A
+	v6TxVersion      uint32 = 6
+	v6VersionGroupID uint32 = 0xD884B698
 	overwinteredBit  uint32 = 1 << 31
 	versionMask      uint32 = 0x7FFFFFFF
 )
@@ -48,6 +51,7 @@ const (
 	BranchIdNu6        BranchId = 0xC8E71055
 	BranchIdNu61       BranchId = 0x4DEC4DF0
 	BranchIdNu62       BranchId = 0x5437F330
+	BranchIdNu63       BranchId = 0x37A5165B
 )
 
 // branchIdFromU32 maps the on-wire u32 to a BranchId, returning false if unknown.
@@ -73,6 +77,8 @@ func branchIdFromU32(v uint32) (BranchId, bool) {
 		return BranchIdNu61, true
 	case 0x5437F330:
 		return BranchIdNu62, true
+	case 0x37A5165B:
+		return BranchIdNu63, true
 	default:
 		return 0, false
 	}
