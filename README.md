@@ -11,12 +11,16 @@ external dependencies.
 
 Supported transaction versions:
 
-- **V4** (Sapling .. Nu6.2) — transparent bundle, Sapling shielded bundle,
-  Sprout joinsplits.
-- **V5** (NU5 .. Nu6.2) — transparent bundle, Sapling shielded bundle, Orchard
+- **V4** (Sapling .. Nu6.3) — transparent bundle, Sapling shielded bundle,
+  Sprout joinsplits. Retired at NU7 (ZIP 2003); historical V4 transactions
+  still parse.
+- **V5** (NU5 .. Nu6.3, still valid in NU7) — transparent bundle, Sapling shielded bundle, Orchard
   shielded bundle.
-- **V6** (NU6.3, ZIP 229) — transparent bundle, Sapling shielded bundle,
+- **V6** (NU6.3 .. NU7, ZIP 229) — transparent bundle, Sapling shielded bundle,
   Orchard shielded bundle, Ironwood shielded bundle.
+
+NU7 retains the V5 and V6 wire formats unchanged (mainnet activation height
+3,543,405, consensus branch id `0x77190AD9`).
 
 Pre-Sapling transactions (Sprout v1/v2 and Overwinter V3) are not supported and
 return `ErrSkipped`.

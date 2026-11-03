@@ -17,9 +17,9 @@ const (
 	// TxVersionSprout covers pre-Overwinter versions 1 and 2. Not supported.
 	TxVersionSprout TxVersion = iota
 	TxVersionV3               // Overwinter. Not supported.
-	TxVersionV4               // Sapling .. Nu6.2
-	TxVersionV5               // NU5 .. Nu6.2 (and beyond)
-	TxVersionV6               // NU6.3 (ZIP 229): Ironwood pool
+	TxVersionV4               // Sapling .. Nu6.3; retired at NU7 (ZIP 2003)
+	TxVersionV5               // NU5 .. Nu6.3, still valid in NU7
+	TxVersionV6               // NU6.3 (ZIP 229): Ironwood pool; also NU7
 )
 
 // Header / version_group_id constants (see zcash_protocol constants.rs).
@@ -52,6 +52,7 @@ const (
 	BranchIdNu61       BranchId = 0x4DEC4DF0
 	BranchIdNu62       BranchId = 0x5437F330
 	BranchIdNu63       BranchId = 0x37A5165B
+	BranchIdNu7        BranchId = 0x77190AD9
 )
 
 // branchIdFromU32 maps the on-wire u32 to a BranchId, returning false if unknown.
@@ -79,6 +80,8 @@ func branchIdFromU32(v uint32) (BranchId, bool) {
 		return BranchIdNu62, true
 	case 0x37A5165B:
 		return BranchIdNu63, true
+	case 0x77190AD9:
+		return BranchIdNu7, true
 	default:
 		return 0, false
 	}

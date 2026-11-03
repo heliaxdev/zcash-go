@@ -9,6 +9,7 @@ import (
 const txVectorPath = "assets/zcash_tx.bin"
 const txFailVectorPath = "assets/zcash_tx_fail.bin"
 const txV6VectorPath = "assets/zcash_tx_v6.bin"
+const txV6Nu7VectorPath = "assets/zcash_tx_v6_nu7.bin"
 
 func TestParseVector(t *testing.T) {
 	raw, err := os.ReadFile(txVectorPath)
@@ -199,6 +200,47 @@ func TestParseV6Vector(t *testing.T) {
 	}
 }
 
+func TestParseV6Nu7Vector(t *testing.T) {
+	raw, err := os.ReadFile(txV6Nu7VectorPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", txV6Nu7VectorPath, err)
+	}
+
+	tx, err := Parse(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// The vector is the v6 vector with only the consensus_branch_id patched,
+	// so the wire format is unchanged from Nu6.3; only the epoch differs.
+	if tx.Version != TxVersionV6 {
+		t.Fatalf("version = %v, want V6", tx.Version)
+	}
+	if tx.ConsensusBranchID != BranchIdNu7 {
+		t.Fatalf("branch id = 0x%08x, want Nu7 (0x%08x)", tx.ConsensusBranchID, BranchIdNu7)
+	}
+	if tx.Orchard == nil || tx.Ironwood == nil {
+		t.Fatal("orchard/ironwood bundle = nil, want non-nil")
+	}
+	if got, want := len(tx.Orchard.Actions), 1; got != want {
+		t.Errorf("orchard actions = %d, want %d", got, want)
+	}
+	if got, want := len(tx.Ironwood.Actions), 1; got != want {
+		t.Errorf("ironwood actions = %d, want %d", got, want)
+	}
+}
+
+func TestBranchIdFromU32(t *testing.T) {
+	bid, ok := branchIdFromU32(0x77190AD9)
+	if !ok || bid != BranchIdNu7 {
+		t.Fatalf("branchIdFromU32(0x77190AD9) = %v, %v; want BranchIdNu7, true", bid, ok)
+	}
+	// NB: 0x77190AD8 was an earlier NU7 proposal id, since retired.
+	if _, ok := branchIdFromU32(0x77190AD8); ok {
+		t.Error("branchIdFromU32(0x77190AD8) accepted, want rejected (retired proposal)")
+	}
+}
+
 func TestRoundTripSerialize(t *testing.T) {
 	vectors := []struct {
 		name string
@@ -207,6 +249,7 @@ func TestRoundTripSerialize(t *testing.T) {
 		{"v5", txVectorPath},
 		{"v4_fail", txFailVectorPath},
 		{"v6", txV6VectorPath},
+		{"v6_nu7", txV6Nu7VectorPath},
 	}
 	for _, v := range vectors {
 		t.Run(v.name, func(t *testing.T) {
